@@ -1,5 +1,5 @@
 #include <SocketIoClient.h>
-
+#include <ArduinoJson.h>
 
 
 /*
@@ -41,7 +41,7 @@ void loop() {
 
 const char* ssid = "Aman"; //Enter SSID
 const char* password = "aman1234"; //Enter Password
-const char* websockets_server_host = "192.168.1.12"; //Enter server adress
+const char* websockets_server_host = "192.168.1.5"; //Enter server adress
 const uint16_t websockets_server_port = 8080; // Enter server port
 
 using namespace websockets;
@@ -52,6 +52,7 @@ SocketIoClient webSocket;
 
 void setup() {
     Serial.begin(115200);
+    pinMode(D4, OUTPUT);
     // Connect to wifi
     WiFi.begin(ssid, password);
 
@@ -69,7 +70,7 @@ void setup() {
 
     Serial.println("Connected to Wifi, Connecting to server.");
     // try to connect to Websockets server
-    webSocket.begin("192.168.1.12",8080);
+    webSocket.begin(websockets_server_host,websockets_server_port);
 
     webSocket.on("event", event);
     webSocket.on("switch", switchEvent);
@@ -81,6 +82,28 @@ void event(const char * payload, size_t length) {
 
 void switchEvent(const char * payload, size_t length) {
   USE_SERIAL.printf("got switch message: %s\n", payload);
+  StaticJsonDocument<200> doc;
+  DeserializationError error = deserializeJson(doc, payload);
+  //Serial.printf(doc["switch"]);
+  long switchState = doc["switch"];
+
+  if(switchState == 0) {
+    digitalWrite(D4, HIGH);
+    USE_SERIAL.printf("Switching ON device.\n");
+  }
+  else if(switchState == 1) {
+    digitalWrite(D4, LOW);
+    USE_SERIAL.printf("Switching OFF device.\n");
+  }
+  
+  // Test if parsing succeeds.
+  if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.c_str());
+    return;
+  }
+  
+  
 }
 
 void loop() {
